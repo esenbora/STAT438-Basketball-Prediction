@@ -45,8 +45,9 @@ The dataset is in play-by-play (action-based) format:
 
 ## 2. Feature Engineering
 
-### First Half Features (27 Features)
+### First Half Features (67 Total Features)
 
+#### Raw Features (20 features)
 | Category | Features |
 |----------|----------|
 | Shot Attempts | 2PT attempts, 3PT attempts |
@@ -55,13 +56,39 @@ The dataset is in play-by-play (action-based) format:
 | Playmaking | Assists |
 | Defense | Blocks, Fouls |
 | Score | First half score |
+| Other | Free throws |
 
-### Derived Features
-- Score difference (score_diff)
-- 2PT attempt difference (2pt_diff)
-- Turnover difference (turnover_diff)
-- Rebound difference (rebound_diff)
-- Assist difference (assist_diff)
+#### Derived Features (7 features)
+- Score difference (score_diff_1h)
+- 2PT attempt difference (2pt_diff_1h)
+- Turnover difference (turnover_diff_1h)
+- Rebound difference (rebound_diff_1h)
+- Assist difference (assist_diff_1h)
+- Total shots per team
+
+#### **Custom Metrics (3 metrics - 9 features)**
+
+**These custom metrics were specifically created for this project to capture advanced basketball analytics:**
+
+##### 1. Paint Dominance (Spatial Scoring Efficiency)
+- **Formula:** `paint_points / total_first_half_score`
+- **Rationale:** Measures the percentage of scoring from high-percentage shots near the basket
+- **Features:** team1_paint_dominance, team2_paint_dominance, paint_dominance_diff
+
+##### 2. Defensive Pressure (Defensive Effectiveness)
+- **Formula:** `(steals + blocks + opponent_turnovers) / opponent_possessions`
+- **Rationale:** Quantifies how effectively a team disrupts opponent's offense
+- **Features:** team1_def_pressure, team2_def_pressure, def_pressure_diff
+
+##### 3. Lead Share & Max Scoring Run (Momentum)
+- **Formula:** `actions_with_lead / total_actions` and longest scoring streak
+- **Rationale:** Captures game control and psychological momentum
+- **Features:** team1_lead_share, team2_lead_share, lead_share_diff, team1_max_run, team2_max_run, max_run_diff
+
+#### Historical Form Features (~31 features)
+- Recent wins/losses (last 3, 5, 10 games)
+- Average scoring differential
+- Streak indicators
 
 ## 3. Target Variables
 
@@ -73,24 +100,41 @@ The dataset is in play-by-play (action-based) format:
 
 ## 4. Model Training
 
-### Train/Test Split
-- **Training:** 186 matches (80%)
-- **Test:** 47 matches (20%)
-- **Stratified sampling** for balanced distribution
+### Cross-Validation Strategy
+- **5-Fold Stratified Cross-Validation** for robust performance estimation
+- **Pipeline-based RFE** (Recursive Feature Elimination) to prevent data leakage
+  - RFE applied INSIDE each CV fold (not on full dataset)
+  - Top 25 features selected per task
+  - Ensures unbiased performance estimates
 
-### Decision Tree Parameters
+### Hyperparameter Tuning
+- **GridSearchCV** with nested cross-validation
+- Decision Tree: 160 parameter combinations tested
+- XGBoost: 216 parameter combinations tested
+
+### Decision Tree Parameter Grid
 ```
-max_depth = 5
-min_samples_split = 10
-min_samples_leaf = 5
+max_depth: [3, 5, 7, 10, None]
+min_samples_split: [2, 5, 10, 20]
+min_samples_leaf: [1, 2, 5, 10]
+criterion: ['gini', 'entropy']
 ```
 
-### XGBoost Parameters
+### XGBoost Parameter Grid
 ```
-n_estimators = 100
-max_depth = 5
-learning_rate = 0.1
+n_estimators: [50, 100, 200]
+max_depth: [3, 5, 7]
+learning_rate: [0.01, 0.1, 0.2]
+subsample: [0.8, 1.0]
+colsample_bytree: [0.8, 1.0]
 ```
+
+### Evaluation Metrics
+- **Accuracy** - Overall correctness
+- **F1 Score** - Balance between precision and recall
+- **Precision** - Positive prediction accuracy
+- **Recall** - True positive detection rate
+- **ROC-AUC** - Discrimination ability
 
 ---
 
